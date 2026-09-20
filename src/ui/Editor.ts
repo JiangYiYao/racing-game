@@ -14,7 +14,7 @@ const initialValues = {
 
 export function Editor() {
   const [get, set, debug, dpr, shadows, stats] = useStore((state) => [state.get, state.set, state.debug, state.dpr, state.shadows, state.stats])
-  const { back, force, front, height, maxBrake, maxSpeed, steer, width } = vehicleConfig
+  const { back, force, front, height, maxBrake, maxSpeed, nitroStrength, steer, width } = vehicleConfig
   const { customSlidingRotationalSpeed, frictionSlip, radius, sideAcceleration, suspensionStiffness, suspensionRestLength, useCustomSlidingRotationalSpeed } =
     wheelInfo
 
@@ -102,6 +102,13 @@ export function Editor() {
           max: 150,
           step: 1,
           onChange: (value) => set({ vehicleConfig: { ...get().vehicleConfig, maxSpeed: value } }),
+        },
+        nitroStrength: {
+          value: nitroStrength,
+          min: 1,
+          max: 3,
+          step: 0.05,
+          onChange: (value) => set({ vehicleConfig: { ...get().vehicleConfig, nitroStrength: value } }),
         },
       },
       { collapsed: true },

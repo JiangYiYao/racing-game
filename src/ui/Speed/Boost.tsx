@@ -1,14 +1,18 @@
 import { useEffect, useRef } from 'react'
 import { addEffect } from '@react-three/fiber'
 
-import { maxBoost, mutation } from '../../store'
+import { maxBoost, mutation, nitroCooldownDuration } from '../../store'
 
 const criticalLevel = 30
 const warningLevel = 60
 
-const getBlink = () => mutation.boost <= criticalLevel
-const getColor = () => (mutation.boost > warningLevel ? '#00FF00' : mutation.boost > criticalLevel ? '#FFE600' : '#FF0000')
-const getLength = () => `${(100 * (1 - mutation.boost / maxBoost)).toFixed()}%`
+const getBlink = () => mutation.nitroCooldown > 0 || mutation.boost <= criticalLevel
+const getColor = () =>
+  mutation.nitroCooldown > 0 ? '#888888' : mutation.boost > warningLevel ? '#00FF00' : mutation.boost > criticalLevel ? '#FFE600' : '#FF0000'
+const getLength = () =>
+  mutation.nitroCooldown > 0
+    ? `${(100 * (1 - mutation.nitroCooldown / nitroCooldownDuration)).toFixed()}%`
+    : `${(100 * (1 - mutation.boost / maxBoost)).toFixed()}%`
 
 export function Boost(): JSX.Element {
   const ref = useRef<SVGPathElement>(null)
