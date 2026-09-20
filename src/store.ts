@@ -15,6 +15,7 @@ export const cameras = ['DEFAULT', 'FIRST_PERSON', 'BIRD_EYE'] as const
 export const dpr = 1.5 as const
 export const levelLayer = 1 as const
 export const maxBoost = 100 as const
+export const nitroCooldownDuration = 3 as const
 export const position = [-110, 0.75, 220] as const
 export const rotation = [0, Math.PI / 2 + 0.35, 0] as const
 
@@ -27,6 +28,7 @@ export const vehicleConfig = {
   force: 1800,
   maxBrake: 65,
   maxSpeed: 88,
+  nitroStrength: 1.5,
 } as const
 
 type VehicleConfig = typeof vehicleConfig
@@ -193,6 +195,7 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
     },
     reset: () => {
       mutation.boost = maxBoost
+      mutation.nitroCooldown = 0
 
       set((state) => {
         state.api?.angularVelocity.set(...angularVelocity)
@@ -233,6 +236,7 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
 
 interface Mutation {
   boost: number
+  nitroCooldown: number
   rpmTarget: number
   sliding: boolean
   speed: number
@@ -242,6 +246,7 @@ interface Mutation {
 export const mutation: Mutation = {
   // Everything in here is mutated to avoid even slight overhead
   boost: maxBoost,
+  nitroCooldown: 0,
   rpmTarget: 0,
   sliding: false,
   speed: 0,

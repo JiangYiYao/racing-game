@@ -28,6 +28,7 @@ export function Clock() {
 
   return (
     <div className="clock">
+      <span className="clock-label">圈速</span>
       <span ref={ref}>{text}</span>
     </div>
   )

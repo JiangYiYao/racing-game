@@ -7,7 +7,7 @@ import type { PropsWithChildren } from 'react'
 import type { BoxProps, RaycastVehicleProps, WheelInfoOptions } from '@react-three/cannon'
 
 import { AccelerateAudio, BoostAudio, Boost, BrakeAudio, Dust, EngineAudio, HonkAudio, Skid } from '../../effects'
-import { getState, mutation, useStore } from '../../store'
+import { getState, maxBoost, mutation, nitroCooldownDuration, useStore } from '../../store'
 import { useToggle } from '../../useToggle'
 import { Chassis } from './Chassis'
 import { Wheel } from './Wheel'
@@ -23,7 +23,7 @@ type DerivedWheelInfo = WheelInfo & Required<Pick<WheelInfoOptions, 'chassisConn
 export function Vehicle({ angularVelocity, children, position, rotation }: VehicleProps) {
   const defaultCamera = useThree((state) => state.camera)
   const [chassisBody, vehicleConfig, wheelInfo, wheels] = useStore((s) => [s.chassisBody, s.vehicleConfig, s.wheelInfo, s.wheels])
-  const { back, force, front, height, maxBrake, steer, maxSpeed, width } = vehicleConfig
+  const { back, force, front, height, maxBrake, nitroStrength, steer, maxSpeed, width } = vehicleConfig
 
   const wheelInfos = wheels.map((_, index): DerivedWheelInfo => {
     const length = index < 2 ? front : back
@@ -63,15 +63,25 @@ export function Vehicle({ angularVelocity, children, position, rotation }: Vehic
     controls = getState().controls
     speed = mutation.speed
 
-    isBoosting = controls.boost && mutation.boost > 0
+    if (mutation.nitroCooldown > 0) {
+      mutation.nitroCooldown = Math.max(mutation.nitroCooldown - delta, 0)
+      if (mutation.nitroCooldown === 0 && mutation.boost === 0) {
+        mutation.boost = maxBoost
+      }
+    }
+
+    isBoosting = controls.boost && mutation.boost > 0 && mutation.nitroCooldown === 0
 
     if (isBoosting) {
       mutation.boost = Math.max(mutation.boost - 1, 0)
+      if (mutation.boost === 0) {
+        mutation.nitroCooldown = nitroCooldownDuration
+      }
     }
 
     engineValue = lerp(
       engineValue,
-      controls.forward || controls.backward ? force * (controls.forward && !controls.backward ? (isBoosting ? -1.5 : -1) : 1) : 0,
+      controls.forward || controls.backward ? force * (controls.forward && !controls.backward ? (isBoosting ? -nitroStrength : -1) : 1) : 0,
       delta * 20,
     )
     steeringValue = lerp(steeringValue, controls.left || controls.right ? steer * (controls.left && !controls.right ? 1 : -1) : 0, delta * 20)
