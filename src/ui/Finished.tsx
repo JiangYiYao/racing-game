@@ -6,7 +6,7 @@ import { Auth } from './Auth'
 import type { SavedScore } from '../data'
 
 export const Finished = (): JSX.Element => {
-  const [reset, session, time] = useStore(({ actions: { reset }, finished, session }) => [reset, session, finished])
+  const [bestTime, reset, session, time] = useStore(({ actions: { reset }, bestTime, finished, session }) => [bestTime, reset, session, finished])
   const [scoreId, setScoreId] = useState<SavedScore['id']>('')
   const [scores, setScores] = useState<SavedScore[]>([])
   const [position, setPosition] = useState<number>(0)
@@ -40,6 +40,7 @@ export const Finished = (): JSX.Element => {
     <div className="finished">
       <div className="finished-header">
         <h1>Good job! Your time was {readableTime(time)} seconds</h1>
+        <p className="finished-best">{time > 0 && time === bestTime ? 'New best!' : `Best ${readableTime(bestTime)}`}</p>
       </div>
       <div className="finished-leaderboard">
         <Scores className="leaderboard" scores={scores} />
