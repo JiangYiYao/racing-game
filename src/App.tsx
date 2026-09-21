@@ -64,8 +64,8 @@ export function App(): JSX.Element {
             <BoundingBox {...{ depth: 512, height: 100, position: [0, 40, 0], width: 512 }} />
           </ToggledDebug>
         </Physics>
-        <Ghost />
         <Track />
+        <Ghost />
         <Environment files="textures/dikhololo_night_1k.hdr" />
         <ToggledMap />
         <ToggledOrbitControls />

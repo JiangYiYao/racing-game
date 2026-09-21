@@ -58,27 +58,29 @@ const ghostify = (material: MeshStandardMaterial, opacity: number) => {
   const cloned = material.clone()
   cloned.transparent = true
   cloned.opacity = opacity
-  cloned.depthWrite = false
+  cloned.depthWrite = true
   cloned.emissive.copy(ghostEmissive)
-  cloned.emissiveIntensity = 0.45
+  cloned.emissiveIntensity = 0.8
+  cloned.roughness = 0.35
+  cloned.metalness = 0.1
   return cloned
 }
 
 function GhostChassis() {
   const { nodes: n, materials: m } = useGLTF('/models/chassis-draco.glb') as ChassisGLTF
   const materials = useMemo(() => {
-    const body = ghostify(m.BodyPaint, 0.38)
+    const body = ghostify(m.BodyPaint, 0.55)
     body.color.copy(ghostPaint)
     return {
       body,
-      chassis2: ghostify(n.Chassis_2.material as MeshStandardMaterial, 0.38),
-      glass: ghostify(m.Glass, 0.16),
-      brake: ghostify(m.BrakeLight, 0.32),
-      head: ghostify(m.HeadLight, 0.4),
-      black: ghostify(m.Black, 0.38),
-      under: ghostify(m.Undercarriage, 0.38),
-      turn: ghostify(m.TurnSignal, 0.38),
-      chrome: ghostify(n.Chrome.material as MeshStandardMaterial, 0.38),
+      chassis2: ghostify(n.Chassis_2.material as MeshStandardMaterial, 0.55),
+      glass: ghostify(m.Glass, 0.2),
+      brake: ghostify(m.BrakeLight, 0.45),
+      head: ghostify(m.HeadLight, 0.55),
+      black: ghostify(m.Black, 0.55),
+      under: ghostify(m.Undercarriage, 0.55),
+      turn: ghostify(m.TurnSignal, 0.55),
+      chrome: ghostify(n.Chrome.material as MeshStandardMaterial, 0.55),
     }
   }, [m, n])
 
@@ -117,7 +119,7 @@ function GhostWheels({ spin }: { spin: MutableRefObject<number> }) {
   const [vehicleConfig, wheelInfo] = useStore((state) => [state.vehicleConfig, state.wheelInfo])
   const { back, front, height, width } = vehicleConfig
   const scale = wheelInfo.radius / 0.34
-  const ghostMaterials = useMemo(() => [ghostify(materials['Material.002'], 0.38), ghostify(materials['Material.009'], 0.38)], [materials])
+  const ghostMaterials = useMemo(() => [ghostify(materials['Material.002'], 0.55), ghostify(materials['Material.009'], 0.55)], [materials])
 
   useEffect(
     () => () => {
@@ -152,12 +154,14 @@ function GhostCar({ run }: { run: GhostRun }) {
   const spin = useRef(0)
   const lastPos = useRef(new Vector3())
   const primed = useRef(false)
+  const runRef = useRef(run)
+  runRef.current = run
 
   useFrame(() => {
     if (!group.current) return
     const { start } = getState()
     const elapsed = start ? Math.max(Date.now() - start, 0) : 0
-    const { a, b, alpha } = findGhostPose(run.samples, elapsed)
+    const { a, b, alpha } = findGhostPose(runRef.current.samples, elapsed)
     posA.fromArray(a.p).lerp(posB.fromArray(b.p), alpha)
     quatA.fromArray(a.q).slerp(quatB.fromArray(b.q), alpha)
 
@@ -175,7 +179,7 @@ function GhostCar({ run }: { run: GhostRun }) {
   })
 
   return (
-    <group ref={group} renderOrder={2}>
+    <group ref={group} renderOrder={10}>
       <GhostChassis />
       <GhostWheels spin={spin} />
     </group>
@@ -196,7 +200,7 @@ export function Ghost() {
   return (
     <>
       <GhostRecorder />
-      {ghost ? <GhostCar key={ghost.time} run={ghost} /> : null}
+      {ghost ? <GhostCar run={ghost} /> : null}
     </>
   )
 }
