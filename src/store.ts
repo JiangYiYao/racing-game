@@ -7,7 +7,10 @@ import type { Session } from '@supabase/supabase-js'
 import type { Group } from 'three'
 import type { GetState, SetState, StateSelector } from 'zustand'
 
+import { commitGhostRun, loadGhostRun, recordGhostSampleFromChassis, resetGhostRecording } from './ghost'
 import { keys } from './keys'
+
+import type { GhostRun } from './ghost'
 
 export const angularVelocity = [0, 0.5, 0] as const
 export const cameras = ['DEFAULT', 'FIRST_PERSON', 'BIRD_EYE'] as const
@@ -144,9 +147,12 @@ export interface IState extends BaseState {
   controls: Controls
   actionInputMap: ActionInputMap
   keyBindingsWithError: number[]
+  bestTime: number
   dpr: number
   finished: number
   get: Getter
+  ghost: GhostRun | null
+  newBest: boolean
   level: RefObject<Group>
   session: Session | null
   set: Setter
@@ -159,6 +165,8 @@ export interface IState extends BaseState {
 
 const setExclusiveBoolean = (set: Setter, boolean: ExclusiveBoolean) => () =>
   set((state) => ({ ...exclusiveBooleans.reduce((o, key) => ({ ...o, [key]: key === boolean ? !state[boolean] : false }), state) }))
+
+const savedGhost = loadGhostRun()
 
 const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState>) => {
   const controlActions = keys(controls).reduce<Record<Control, (value: boolean) => void>>((o, control) => {
@@ -183,16 +191,25 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
       }
     },
     onFinish: () => {
-      const { finished, start } = get()
+      const { chassisBody, finished, ghost, start } = get()
       if (start && !finished) {
-        set({ finished: Math.max(Date.now() - start, 0) })
+        const time = Math.max(Date.now() - start, 0)
+        recordGhostSampleFromChassis(time, chassisBody.current, true)
+        const nextGhost = commitGhostRun(time, ghost)
+        if (nextGhost) {
+          set({ bestTime: nextGhost.time, finished: time, ghost: nextGhost, newBest: true })
+        } else {
+          set({ finished: time, newBest: false })
+        }
       }
     },
     onStart: () => {
-      set({ finished: 0, start: Date.now() })
+      resetGhostRecording()
+      set({ finished: 0, start: Date.now(), newBest: false })
     },
     reset: () => {
       mutation.boost = maxBoost
+      resetGhostRecording()
 
       set((state) => {
         state.api?.angularVelocity.set(...angularVelocity)
@@ -200,7 +217,7 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
         state.api?.rotation.set(...rotation)
         state.api?.velocity.set(0, 0, 0)
 
-        return { ...state, finished: 0, start: 0 }
+        return { ...state, finished: 0, start: 0, newBest: false }
       })
     },
   }
@@ -211,6 +228,7 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
     actions,
     api: null,
     bestCheckpoint: 0,
+    bestTime: savedGhost?.time ?? 0,
     camera: cameras[0],
     chassisBody: createRef<Group>(),
     checkpoint: 0,
@@ -220,7 +238,9 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
     dpr,
     finished: 0,
     get,
+    ghost: savedGhost,
     keyInput: null,
+    newBest: false,
     level: createRef<Group>(),
     session: null,
     set,

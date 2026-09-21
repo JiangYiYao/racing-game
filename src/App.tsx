@@ -8,7 +8,7 @@ import type { DirectionalLight } from 'three'
 
 import { HideMouse, Keyboard } from './controls'
 import { Cameras } from './effects'
-import { BoundingBox, Ramp, Track, Vehicle, Goal, Train, Heightmap } from './models'
+import { BoundingBox, Ghost, Ramp, Track, Vehicle, Goal, Train, Heightmap } from './models'
 import { angularVelocity, levelLayer, position, rotation, useStore } from './store'
 import { Checkpoint, Clock, Speed, Minimap, Intro, Help, Editor, LeaderBoard, Finished, PickColor } from './ui'
 import { useToggle } from './useToggle'
@@ -65,6 +65,7 @@ export function App(): JSX.Element {
           </ToggledDebug>
         </Physics>
         <Track />
+        <Ghost />
         <Environment files="textures/dikhololo_night_1k.hdr" />
         <ToggledMap />
         <ToggledOrbitControls />

@@ -4,13 +4,14 @@ import { useStore } from '../store'
 import { readableTime } from './LeaderBoard'
 
 const getTime = (finished: number, start: number) => {
-  const time = start && !finished ? Date.now() - start : 0
-  return `${readableTime(time)}`
+  if (finished) return readableTime(finished)
+  const time = start ? Date.now() - start : 0
+  return readableTime(time)
 }
 
 export function Clock() {
   const ref = useRef<HTMLSpanElement>(null)
-  const { finished, start } = useStore(({ finished, start }) => ({ finished, start }))
+  const { bestTime, finished, start } = useStore(({ bestTime, finished, start }) => ({ bestTime, finished, start }))
 
   let text = getTime(finished, start)
 
@@ -28,7 +29,10 @@ export function Clock() {
 
   return (
     <div className="clock">
-      <span ref={ref}>{text}</span>
+      <span ref={ref} className="clock-current">
+        {text}
+      </span>
+      <span className="clock-best">BEST {bestTime ? readableTime(bestTime) : '—'}</span>
     </div>
   )
 }
