@@ -7,7 +7,7 @@ import type { ReactNode, MutableRefObject } from 'react'
 import type { Group, Mesh, MeshStandardMaterial } from 'three'
 import type { GLTF } from 'three-stdlib'
 
-import { findGhostPose, recordGhostSample } from '../../ghost'
+import { findGhostPose, ghostElapsed, recordGhostSampleFromChassis } from '../../ghost'
 import { getState, useStore } from '../../store'
 
 import type { GhostRun } from '../../ghost'
@@ -160,7 +160,7 @@ function GhostCar({ run }: { run: GhostRun }) {
   useFrame(() => {
     if (!group.current) return
     const { start } = getState()
-    const elapsed = start ? Math.max(Date.now() - start, 0) : 0
+    const elapsed = ghostElapsed(start)
     const { a, b, alpha } = findGhostPose(runRef.current.samples, elapsed)
     posA.fromArray(a.p).lerp(posB.fromArray(b.p), alpha)
     quatA.fromArray(a.q).slerp(quatB.fromArray(b.q), alpha)
@@ -190,7 +190,7 @@ function GhostRecorder() {
   useFrame(() => {
     const { chassisBody, finished, start } = getState()
     if (!start || finished || !chassisBody.current) return
-    recordGhostSample(Date.now() - start, chassisBody.current.position, chassisBody.current.quaternion)
+    recordGhostSampleFromChassis(Date.now() - start, chassisBody.current)
   })
   return null
 }

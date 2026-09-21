@@ -7,7 +7,7 @@ import type { Session } from '@supabase/supabase-js'
 import type { Group } from 'three'
 import type { GetState, SetState, StateSelector } from 'zustand'
 
-import { commitGhostRun, loadGhostRun, recordGhostSample, resetGhostRecording } from './ghost'
+import { commitGhostRun, loadGhostRun, recordGhostSampleFromChassis, resetGhostRecording } from './ghost'
 import { keys } from './keys'
 
 import type { GhostRun } from './ghost'
@@ -152,6 +152,7 @@ export interface IState extends BaseState {
   finished: number
   get: Getter
   ghost: GhostRun | null
+  newBest: boolean
   level: RefObject<Group>
   session: Session | null
   set: Setter
@@ -193,20 +194,18 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
       const { chassisBody, finished, ghost, start } = get()
       if (start && !finished) {
         const time = Math.max(Date.now() - start, 0)
-        if (chassisBody.current) {
-          recordGhostSample(time, chassisBody.current.position, chassisBody.current.quaternion, true)
-        }
+        recordGhostSampleFromChassis(time, chassisBody.current, true)
         const nextGhost = commitGhostRun(time, ghost)
         if (nextGhost) {
-          set({ bestTime: nextGhost.time, finished: time, ghost: nextGhost })
+          set({ bestTime: nextGhost.time, finished: time, ghost: nextGhost, newBest: true })
         } else {
-          set({ finished: time })
+          set({ finished: time, newBest: false })
         }
       }
     },
     onStart: () => {
       resetGhostRecording()
-      set({ finished: 0, start: Date.now() })
+      set({ finished: 0, start: Date.now(), newBest: false })
     },
     reset: () => {
       mutation.boost = maxBoost
@@ -218,7 +217,7 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
         state.api?.rotation.set(...rotation)
         state.api?.velocity.set(0, 0, 0)
 
-        return { ...state, finished: 0, start: 0 }
+        return { ...state, finished: 0, start: 0, newBest: false }
       })
     },
   }
@@ -241,6 +240,7 @@ const useStoreImpl = create<IState>((set: SetState<IState>, get: GetState<IState
     get,
     ghost: savedGhost,
     keyInput: null,
+    newBest: false,
     level: createRef<Group>(),
     session: null,
     set,

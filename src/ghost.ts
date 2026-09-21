@@ -1,3 +1,5 @@
+import { Quaternion, Vector3 } from 'three'
+
 export type GhostSample = {
   t: number
   p: [number, number, number]
@@ -10,9 +12,18 @@ export type GhostRun = {
 }
 
 export const GHOST_STORAGE_KEY = 'pmndrs.racing-game.ghost-best'
+export const GHOST_SAMPLE_HZ = 20
 
 const STORAGE_VERSION = 1
-const SAMPLE_INTERVAL = 1000 / 20
+const SAMPLE_INTERVAL = 1000 / GHOST_SAMPLE_HZ
+
+const worldPos = new Vector3()
+const worldQuat = new Quaternion()
+
+type ChassisLike = {
+  getWorldPosition: (target: Vector3) => Vector3
+  getWorldQuaternion: (target: Quaternion) => Quaternion
+}
 
 type StoredGhost = {
   version: typeof STORAGE_VERSION
@@ -87,9 +98,26 @@ export function recordGhostSample(
   })
 }
 
+export function recordGhostSampleFromChassis(t: number, chassis: ChassisLike | null | undefined, force = false): void {
+  if (!chassis) return
+  // Cannon writes the live transform to matrix/matrixWorld and disables matrixAutoUpdate,
+  // so chassis.position / chassis.quaternion stay at the spawn pose.
+  chassis.getWorldPosition(worldPos)
+  chassis.getWorldQuaternion(worldQuat)
+  recordGhostSample(t, worldPos, worldQuat, force)
+}
+
+export function ghostElapsed(start: number, now = Date.now()): number {
+  return start ? Math.max(now - start, 0) : 0
+}
+
+export function isNewBestTime(time: number, existing: GhostRun | null): boolean {
+  return time > 0 && (!existing || time < existing.time)
+}
+
 export function commitGhostRun(time: number, existing: GhostRun | null): GhostRun | null {
   if (time <= 0 || samples.length < 2) return null
-  if (existing && time >= existing.time) return null
+  if (!isNewBestTime(time, existing)) return null
   const run: GhostRun = { time, samples: samples.slice() }
   saveGhostRun(run)
   return run
